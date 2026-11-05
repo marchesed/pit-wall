@@ -83,7 +83,7 @@ const CARDS = {
   freshsofts:  { name: 'Fresh Softs',  cost: 1, type: 'skill',   icon: '🔴', text: 'Next 2 hits +3. +2 wear.',        play: () => { b.softs = 2; addWear(2); } },
   ers:         { name: 'ERS Deploy',   cost: 0, type: 'skill',   icon: '⚡', text: '+2 energy. +1 wear. Exhaust.',    exhaust: true, play: () => { b.energy += 2; addWear(1); Sfx.ers(); fx('player', 'heal', '+2 energy'); } },
   safetycar:   { name: 'Safety Car',   cost: 2, type: 'skill',   icon: '🚨', text: 'Cancel rival move. 8 block. Exhaust.', exhaust: true, play: () => { b.cancel = true; block(8); Sfx.siren(); log('Safety car! Rival move cancelled.'); } },
-  fuelsave:    { name: 'Fuel Save',    cost: 1, type: 'skill',   icon: '⛽', text: 'Heal 5. Gain 4 block.',           play: () => { run.hp = Math.min(run.maxHp, run.hp + 5); block(4); Sfx.heal(); fx('player', 'heal', '+5'); } },
+  groundfx:    { name: 'Ground Effect', cost: 1, type: 'skill',   icon: '⬇️', text: 'All block gained +2 this fight. Exhaust.', exhaust: true, play: () => { b.armor += 2; Sfx.ers(); fx('player', 'heal', 'Block +2'); } },
 
   // --- more attacks ---
   cutback:     { name: 'Cutback',      cost: 1, type: 'attack',  icon: '↩️', text: 'Deal 5. Deal 11 if rival has block.', hits: () => [b.rival.block > 0 ? 11 : 5], fmt: (v, p) => `Deal ${p(5)}. Deal ${p(11)} if rival has block.` },
@@ -128,7 +128,7 @@ const UPGRADES = {
   freshsofts:  { text: 'Next 3 hits +3. +2 wear.',         play: () => { b.softs = 3; addWear(2); } },
   ers:         { text: '+2 energy. Exhaust.',              play: () => { b.energy += 2; Sfx.ers(); fx('player', 'heal', '+2 energy'); } },
   safetycar:   { cost: 1, text: 'Cancel rival move. 8 block. Exhaust.', play: () => { b.cancel = true; block(8); Sfx.siren(); log('Safety car! Rival move cancelled.'); } },
-  fuelsave:    { text: 'Heal 8. Gain 6 block.',            play: () => { run.hp = Math.min(run.maxHp, run.hp + 8); block(6); Sfx.heal(); fx('player', 'heal', '+8'); } },
+  groundfx:    { text: 'All block gained +3 this fight. Exhaust.', play: () => { b.armor += 3; Sfx.ers(); fx('player', 'heal', 'Block +3'); } },
   undercut:    { text: 'Draw 2. Next 2 hits +3.',          play: () => { draw(2); b.softs += 2; } },
   aero:        { text: 'All hits +3 this fight. Exhaust.', play: () => { b.boost += 3; Sfx.ers(); fx('player', 'heal', 'Hits +3'); } },
   teamorders:  { text: '+2 energy. Draw 1. Exhaust.',      play: () => { b.energy += 2; draw(1); } },
@@ -149,11 +149,11 @@ const REWARD_POOL = Object.keys(CARDS).filter(id => !id.endsWith('+') && !['over
 
 /* ---------- Rivals ---------- */
 const RIVALS = {
-  rookie:  { name: 'Rookie Rival',      emoji: '😬', hp: 30, moves: [{ t: 'atk', v: 7 }, { t: 'atk', v: 9 }, { t: 'def', v: 7 }] },
+  rookie:  { name: 'Rookie Rival',      emoji: '😬', hp: 36, moves: [{ t: 'atk', v: 8 }, { t: 'atk', v: 11 }, { t: 'def', v: 8 }] },
   fighter: { name: 'Midfield Fighter',  emoji: '😤', hp: 46, moves: [{ t: 'atk', v: 9 }, { t: 'atk', v: 6, wear: 2 }, { t: 'def', v: 10 }, { t: 'atk', v: 12 }] },
   pole:    { name: 'Pole Sitter',       emoji: '😎', hp: 66, moves: [{ t: 'buff', v: 2 }, { t: 'atk', v: 11 }, { t: 'atk', v: 8, wear: 2 }, { t: 'def', v: 12 }] },
-  paydriver: { name: 'Pay Driver',     emoji: '🤑', hp: 30, moves: [{ t: 'def', v: 9 }, { t: 'atk', v: 7 }, { t: 'atk', v: 6, wear: 1 }] },
-  wildcard:  { name: 'Wildcard Entry',  emoji: '🤪', hp: 26, moves: [{ t: 'atk', v: 3, n: 3 }, { t: 'atk', v: 11 }, { t: 'def', v: 5 }] },
+  paydriver: { name: 'Pay Driver',     emoji: '🤑', hp: 36, moves: [{ t: 'def', v: 10 }, { t: 'atk', v: 9 }, { t: 'atk', v: 7, wear: 2 }] },
+  wildcard:  { name: 'Wildcard Entry',  emoji: '🤪', hp: 32, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 12 }, { t: 'def', v: 6 }] },
   whisperer: { name: 'Tyre Whisperer',  emoji: '🧐', hp: 44, moves: [{ t: 'atk', v: 6, wear: 3 }, { t: 'atk', v: 9 }, { t: 'def', v: 8 }, { t: 'buff', v: 1 }] },
   backmarker:{ name: 'Backmarker Blocker', emoji: '🧱', hp: 54, moves: [{ t: 'def', v: 12 }, { t: 'def', v: 12 }, { t: 'atk', v: 13 }, { t: 'atk', v: 7 }] },
   rainmaster:{ name: 'Rain Master',     emoji: '🌧️', hp: 64, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 4, n: 3 }, { t: 'buff', v: 3 }, { t: 'atk', v: 14 }] },
@@ -349,6 +349,10 @@ function mapState() {
 /* ---------- Battle helpers ---------- */
 function log(msg) { b.log = msg; }
 function fx(target, kind, text) { b.fx.push({ target, kind, text }); }
+// Each landed hit gets its own beat: floaters, shakes and sounds are spaced HIT_GAP ms apart.
+const HIT_GAP = 350;
+const hitCount = target => b.fx.filter(f => f.target === target && (f.kind === 'dmg' || f.kind === 'blocked')).length;
+const later = (fn, ms) => (ms > 0 ? setTimeout(fn, ms) : fn());
 
 function hit(n) {
   let d = n + b.boost;
@@ -361,7 +365,8 @@ function hit(n) {
   const dealt = d - absorbed;
   bump('dmgDealt', Math.min(dealt, r.hp));
   r.hp = Math.max(0, r.hp - dealt);
-  if (dealt > 0) { fx('rival', 'dmg', `-${dealt}`); Sfx.hit(); } else { fx('rival', 'blocked', 'Blocked'); Sfx.block(); }
+  const gap = hitCount('rival') * HIT_GAP;
+  if (dealt > 0) { fx('rival', 'dmg', `-${dealt}`); later(Sfx.hit, gap); } else { fx('rival', 'blocked', 'Blocked'); later(Sfx.block, gap); }
   log(`You hit for ${d}.`);
 }
 // What a list of hits would really deal right now (same rules as hit(), without changing anything).
@@ -383,7 +388,7 @@ function liveText(c) {
   const p = n => num(previewDamage([n])[0], n);
   return c.fmt ? c.fmt(v, p) : c.text;
 }
-function block(n) { b.block += n; fx('player', 'block', `+${n}🛡️`); Sfx.block(); }
+function block(n) { n += b.armor; b.block += n; fx('player', 'block', `+${n}🛡️`); Sfx.block(); }
 function addWear(n) {
   const was = b.wear;
   b.wear = clamp(b.wear + n, 0, b.maxWear);
@@ -413,7 +418,7 @@ function startBattle(nodeType) {
     rival: { ...def, hp: def.hp + f * 2, maxHp: def.hp + f * 2, block: 0, str: f >= 6 ? 1 : 0, i: 0 },
     drawPile: shuffle([...run.deck]),
     discard: [], exhaust: [], hand: [],
-    block: 0, energy: ENERGY, wear: f >= 3 ? 2 : 0, softs: 0, fx: [], dealing: false,
+    block: 0, energy: ENERGY, wear: f >= 3 ? 2 : 0, softs: 0, armor: 0, fx: [], dealing: false,
     maxWear: MAX_WEAR + (hasSp('apex') ? 2 : 0), boost: hasSp('aero') ? 1 : 0, firstTurn: true, hitTurn: false,
     sel: -1, busy: false, cancel: false, log: `Lights out vs ${def.name}!`,
   };
@@ -488,11 +493,13 @@ function rivalTurn() {
     for (let h = 0; h < hits; h++) {
       const absorbed = Math.min(b.block, d);
       b.block -= absorbed;
-      dealt += d - absorbed;
+      const through = d - absorbed;
+      dealt += through;
+      const gap = h * HIT_GAP; // one animation + sound per hit
+      if (through > 0) { fx('player', 'dmg', `-${through}`); later(Sfx.hurt, gap); } else { fx('player', 'blocked', 'Blocked'); later(Sfx.block, gap); }
     }
     bump('dmgTaken', Math.min(dealt, run.hp));
     run.hp = Math.max(0, run.hp - dealt);
-    if (dealt > 0) { fx('player', 'dmg', `-${dealt}`); Sfx.hurt(); } else { fx('player', 'blocked', 'Blocked'); Sfx.block(); }
     const w = hasSp('rain') && m.wear ? Math.floor(m.wear / 2) : m.wear;
     if (w) addWear(w);
     b.log = `${r.name} hits you for ${dealt}${m.wear ? ' and chews your tyres' : ''}.`;
@@ -506,9 +513,10 @@ function rivalTurn() {
     b.log = `${r.name} pushes harder (+${m.v} attack).`;
   }
   r.i++;
+  const extra = m.t === 'atk' && !b.cancel ? ((m.n || 1) - 1) * HIT_GAP : 0; // let every hit play out
   render();
-  if (run.hp <= 0) { recordRun(run, 'loss', r.name); clearSave(); setTimeout(() => { Sfx.lose(); run.screen = 'over'; render(); }, 800); return; }
-  setTimeout(startTurn, 700);
+  if (run.hp <= 0) { recordRun(run, 'loss', r.name); clearSave(); setTimeout(() => { Sfx.lose(); run.screen = 'over'; render(); }, 800 + extra); return; }
+  setTimeout(startTurn, 700 + extra);
 }
 
 function winBattle() {
@@ -536,8 +544,14 @@ const bar = (v, max, cls = '', key = '', blk = 0, flash = false) => {
   if (key) barPrev[key] = to;
   return `<div class="bar ${cls} ${blk > 0 ? 'shielded' : ''} ${flash ? 'bflash' : ''}"><i style="--from:${from}%;--to:${to}%"></i><span>${v}/${max}${blk > 0 ? ` · 🛡️ ${blk}` : ''}</span></div>`;
 };
-const floaters = target => b.fx.filter(f => f.target === target && f.text)
-  .map((f, i) => `<div class="float ${f.kind}" style="animation-delay:${i * 130}ms">${f.text}</div>`).join('');
+const floaters = target => {
+  let hitN = 0, other = 0;
+  return b.fx.filter(f => f.target === target && f.text).map(f => {
+    const isHit = f.kind === 'dmg' || f.kind === 'blocked';
+    const delay = isHit ? hitN++ * HIT_GAP : other++ * 130; // hits follow the shake rhythm
+    return `<div class="float ${f.kind}" style="animation-delay:${delay}ms">${f.text}</div>`;
+  }).join('');
+};
 const hasFx = (target, kind) => b.fx.some(f => f.target === target && f.kind === kind);
 const cardHtml = (id, opts = {}) => {
   const c = CARDS[id];
@@ -698,16 +712,19 @@ function vBattle() {
   const ko = r.hp <= 0 ? 'ko' : '';
   const rivalCls = `rival ${hasFx('rival', 'dmg') ? 'shake' : ''} ${hasFx('rival', 'lunge') ? 'lunge' : ''}`;
   const playerCls = `player ${hasFx('player', 'dmg') ? 'shake hurt' : ''}`;
+  // --n repeats the hit animation once per hit (blocked hits still lunge, but don't shake)
+  const rivalN = Math.max(1, b.fx.filter(f => f.target === 'rival' && f.kind === 'dmg').length, hasFx('rival', 'lunge') ? hitCount('player') : 1);
+  const playerN = Math.max(1, b.fx.filter(f => f.target === 'player' && f.kind === 'dmg').length);
   return `${topBar()}
   <div class="arena">
-    <div class="${rivalCls}">
+    <div class="${rivalCls}" style="--n:${rivalN}">
       ${floaters('rival')}
       <div class="face ${ko}">${r.emoji}</div><b>${r.name}</b>${r.str ? ` <span class="muted">(${r.str > 0 ? '+' : ''}${r.str} atk)</span>` : ''}
       ${bar(r.hp, r.maxHp, '', 'rival', r.block, hasFx('rival', 'block') || hasFx('rival', 'blocked'))}
       <div class="intent">${it}</div>
     </div>
     <div class="log">${b.log}</div>
-    <div class="${playerCls}">
+    <div class="${playerCls}" style="--n:${playerN}">
       ${floaters('player')}
       <div class="row"><div style="flex:1"><b>You</b>${bar(run.hp, run.maxHp, 'p', 'you', b.block, hasFx('player', 'block') || hasFx('player', 'blocked'))}</div>
       <div class="energy">${b.energy}/${ENERGY}</div></div>
@@ -867,7 +884,7 @@ app.addEventListener('click', e => {
     case 'continue': {
       const sv = peekSave();
       if (!sv) break;
-      run = { ...sv, sponsors: sv.sponsors || [], help: false, pileView: null, sponsorView: false, mapView: false };
+      run = { ...sv, deck: (sv.deck || []).map(id => id === 'fuelsave' ? 'groundfx' : id === 'fuelsave+' ? 'groundfx+' : id), sponsors: sv.sponsors || [], help: false, pileView: null, sponsorView: false, mapView: false };
       if (!SAVE_SCREENS.has(run.screen)) run.screen = 'map';
       lastScreen = null;
       render();
