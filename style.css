@@ -244,3 +244,5 @@ h2 { margin: 0 0 4px; }
 .timer { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); padding: 4px 2px; }
 .bigtime { font-size: 30px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .newbest { color: var(--gold); font-weight: 800; }
+
+.hpv { font-style: normal; }

@@ -149,16 +149,16 @@ const REWARD_POOL = Object.keys(CARDS).filter(id => !id.endsWith('+') && !['over
 
 /* ---------- Rivals ---------- */
 const RIVALS = {
-  rookie:  { name: 'Rookie Rival',      emoji: '😬', hp: 36, moves: [{ t: 'atk', v: 8 }, { t: 'atk', v: 11 }, { t: 'def', v: 8 }] },
-  fighter: { name: 'Midfield Fighter',  emoji: '😤', hp: 46, moves: [{ t: 'atk', v: 9 }, { t: 'atk', v: 6, wear: 2 }, { t: 'def', v: 10 }, { t: 'atk', v: 12 }] },
-  pole:    { name: 'Pole Sitter',       emoji: '😎', hp: 66, moves: [{ t: 'buff', v: 2 }, { t: 'atk', v: 11 }, { t: 'atk', v: 8, wear: 2 }, { t: 'def', v: 12 }] },
-  paydriver: { name: 'Pay Driver',     emoji: '🤑', hp: 36, moves: [{ t: 'def', v: 10 }, { t: 'atk', v: 9 }, { t: 'atk', v: 7, wear: 2 }] },
-  wildcard:  { name: 'Wildcard Entry',  emoji: '🤪', hp: 32, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 12 }, { t: 'def', v: 6 }] },
-  whisperer: { name: 'Tyre Whisperer',  emoji: '🧐', hp: 44, moves: [{ t: 'atk', v: 6, wear: 3 }, { t: 'atk', v: 9 }, { t: 'def', v: 8 }, { t: 'buff', v: 1 }] },
-  backmarker:{ name: 'Backmarker Blocker', emoji: '🧱', hp: 54, moves: [{ t: 'def', v: 12 }, { t: 'def', v: 12 }, { t: 'atk', v: 13 }, { t: 'atk', v: 7 }] },
-  rainmaster:{ name: 'Rain Master',     emoji: '🌧️', hp: 64, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 4, n: 3 }, { t: 'buff', v: 3 }, { t: 'atk', v: 14 }] },
-  iceman:    { name: 'The Iceman',      emoji: '🧊', hp: 100, moves: [{ t: 'def', v: 10 }, { t: 'atk', v: 9, n: 2 }, { t: 'atk', v: 8, wear: 2 }, { t: 'buff', v: 2 }, { t: 'atk', v: 18 }] },
-  champ:   { name: 'Reigning Champion', emoji: '👑', hp: 105, moves: [{ t: 'atk', v: 12 }, { t: 'def', v: 14 }, { t: 'buff', v: 2 }, { t: 'atk', v: 16, wear: 2 }] },
+  rookie:  { name: 'Isack Cookie-Hadjar', emoji: '🍪', hp: 36, moves: [{ t: 'atk', v: 8 }, { t: 'atk', v: 11 }, { t: 'def', v: 8 }] },
+  fighter: { name: 'Lando Chuck-Norris', emoji: '🥊', hp: 46, moves: [{ t: 'atk', v: 9 }, { t: 'atk', v: 6, wear: 2 }, { t: 'def', v: 10 }, { t: 'atk', v: 12 }] },
+  pole:    { name: 'Lewis Hammer-Time', emoji: '🔨', hp: 66, moves: [{ t: 'buff', v: 2 }, { t: 'atk', v: 11 }, { t: 'atk', v: 8, wear: 2 }, { t: 'def', v: 12 }] },
+  paydriver: { name: 'Liam Lawsuit',     emoji: '⚖️', hp: 36, moves: [{ t: 'def', v: 10 }, { t: 'atk', v: 9 }, { t: 'atk', v: 7, wear: 2 }] },
+  wildcard:  { name: 'Pierre Gas-Leak',  emoji: '💨', hp: 32, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 12 }, { t: 'def', v: 6 }] },
+  whisperer: { name: 'Oscar Pie-Astri',  emoji: '🥧', hp: 44, moves: [{ t: 'atk', v: 6, wear: 3 }, { t: 'atk', v: 9 }, { t: 'def', v: 8 }, { t: 'buff', v: 1 }] },
+  backmarker:{ name: 'George Russell Sprout', emoji: '🥦', hp: 54, moves: [{ t: 'def', v: 12 }, { t: 'def', v: 12 }, { t: 'atk', v: 13 }, { t: 'atk', v: 7 }] },
+  rainmaster:{ name: 'Charles Le-Plan-C', emoji: '📋', hp: 64, moves: [{ t: 'atk', v: 4, n: 3 }, { t: 'atk', v: 4, n: 3 }, { t: 'buff', v: 3 }, { t: 'atk', v: 14 }] },
+  iceman:    { name: 'Max Ver-Stop-Me',   emoji: '🛑', hp: 100, moves: [{ t: 'def', v: 10 }, { t: 'atk', v: 9, n: 2 }, { t: 'atk', v: 8, wear: 2 }, { t: 'buff', v: 2 }, { t: 'atk', v: 18 }] },
+  champ:   { name: 'Kimi Anto-Nailed-It', emoji: '🏆', hp: 105, moves: [{ t: 'atk', v: 12 }, { t: 'def', v: 14 }, { t: 'buff', v: 2 }, { t: 'atk', v: 16, wear: 2 }] },
 };
 
 const TIERS = {
@@ -349,6 +349,8 @@ function mapState() {
 /* ---------- Battle helpers ---------- */
 function log(msg) { b.log = msg; }
 function fx(target, kind, text) { b.fx.push({ target, kind, text }); }
+// HP left after each landed hit this render, so bars can drop one hit at a time.
+const stepsOf = key => (b.steps = b.steps || { rival: [], you: [] })[key];
 // Each landed hit gets its own beat: floaters, shakes and sounds are spaced HIT_GAP ms apart.
 const HIT_GAP = 350;
 const hitCount = target => b.fx.filter(f => f.target === target && (f.kind === 'dmg' || f.kind === 'blocked')).length;
@@ -360,11 +362,13 @@ function hit(n) {
   if (b.softs > 0) { d += 3; b.softs--; }
   if (b.wear >= b.maxWear) d = Math.floor(d / 2);
   const r = b.rival;
+  if (!stepsOf('rival').length) stepsOf('rival').push(r.hp); // [hp before, hp after each hit...]
   const absorbed = Math.min(r.block, d);
   r.block -= absorbed;
   const dealt = d - absorbed;
   bump('dmgDealt', Math.min(dealt, r.hp));
   r.hp = Math.max(0, r.hp - dealt);
+  stepsOf('rival').push(r.hp);
   const gap = hitCount('rival') * HIT_GAP;
   if (dealt > 0) { fx('rival', 'dmg', `-${dealt}`); later(Sfx.hit, gap); } else { fx('rival', 'blocked', 'Blocked'); later(Sfx.block, gap); }
   log(`You hit for ${d}.`);
@@ -490,11 +494,13 @@ function rivalTurn() {
     const d = Math.max(0, m.v + r.str), hits = m.n || 1;
     let dealt = 0;
     fx('rival', 'lunge');
+    stepsOf('you').push(run.hp);
     for (let h = 0; h < hits; h++) {
       const absorbed = Math.min(b.block, d);
       b.block -= absorbed;
       const through = d - absorbed;
       dealt += through;
+      stepsOf('you').push(Math.max(0, run.hp - dealt));
       const gap = h * HIT_GAP; // one animation + sound per hit
       if (through > 0) { fx('player', 'dmg', `-${through}`); later(Sfx.hurt, gap); } else { fx('player', 'blocked', 'Blocked'); later(Sfx.block, gap); }
     }
@@ -538,11 +544,27 @@ function winBattle() {
 
 /* ---------- Views ---------- */
 // blk > 0 turns the bar blue (shielded); flash pulses it when block is gained or soaks a hit.
-const bar = (v, max, cls = '', key = '', blk = 0, flash = false) => {
+let kfN = 0;
+const bar = (v, max, cls = '', key = '', blk = 0, flash = false, steps = []) => {
   const to = clamp(v / max * 100, 0, 100);
   const from = key in barPrev ? barPrev[key] : to;
   if (key) barPrev[key] = to;
-  return `<div class="bar ${cls} ${blk > 0 ? 'shielded' : ''} ${flash ? 'bflash' : ''}"><i style="--from:${from}%;--to:${to}%"></i><span>${v}/${max}${blk > 0 ? ` · 🛡️ ${blk}` : ''}</span></div>`;
+  let kf = '', anim = '';
+  let seq = '';
+  if (steps.length > 2) { // multi-hit: drop the bar a little at each hit's moment
+    seq = steps.join(',');
+    const T = (steps.length - 2) * HIT_GAP + 300, pct = ms => (ms / T * 100).toFixed(2);
+    let frames = `0%{width:${from}%}`, prev = from;
+    steps.slice(1).forEach((hp, k) => {
+      const w = clamp(hp / max * 100, 0, 100);
+      frames += `${pct(k * HIT_GAP)}%{width:${prev}%}${pct(k * HIT_GAP + 220)}%{width:${w}%}`;
+      prev = w;
+    });
+    const name = 'bk' + (++kfN);
+    kf = `<style>@keyframes ${name}{${frames}100%{width:${prev}%}}</style>`;
+    anim = `;animation:${name} ${T}ms linear both`;
+  }
+  return `${kf}<div class="bar ${cls} ${blk > 0 ? 'shielded' : ''} ${flash ? 'bflash' : ''}"><i style="--from:${from}%;--to:${to}%${anim}"></i><span>${seq ? `<em class="hpv" data-seq="${seq}">${steps[0]}</em>` : v}/${max}${blk > 0 ? ` · 🛡️ ${blk}` : ''}</span></div>`;
 };
 const floaters = target => {
   let hitN = 0, other = 0;
@@ -720,13 +742,13 @@ function vBattle() {
     <div class="${rivalCls}" style="--n:${rivalN}">
       ${floaters('rival')}
       <div class="face ${ko}">${r.emoji}</div><b>${r.name}</b>${r.str ? ` <span class="muted">(${r.str > 0 ? '+' : ''}${r.str} atk)</span>` : ''}
-      ${bar(r.hp, r.maxHp, '', 'rival', r.block, hasFx('rival', 'block') || hasFx('rival', 'blocked'))}
+      ${bar(r.hp, r.maxHp, '', 'rival', r.block, hasFx('rival', 'block') || hasFx('rival', 'blocked'), stepsOf('rival'))}
       <div class="intent">${it}</div>
     </div>
     <div class="log">${b.log}</div>
     <div class="${playerCls}" style="--n:${playerN}">
       ${floaters('player')}
-      <div class="row"><div style="flex:1"><b>You</b>${bar(run.hp, run.maxHp, 'p', 'you', b.block, hasFx('player', 'block') || hasFx('player', 'blocked'))}</div>
+      <div class="row"><div style="flex:1"><b>You</b>${bar(run.hp, run.maxHp, 'p', 'you', b.block, hasFx('player', 'block') || hasFx('player', 'blocked'), stepsOf('you'))}</div>
       <div class="energy">${b.energy}/${ENERGY}</div></div>
       <div class="wear ${b.wear >= b.maxWear ? 'dead' : ''}">🛞 ${segs}</div>
     </div>
@@ -848,7 +870,11 @@ function render() {
   if (ng && gy) ng.scrollTop = gy;
   if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths();
   if (SAVE_SCREENS.has(run.screen)) saveRun();
-  if (run.screen === 'battle') { b.fx = []; b.dealing = false; }
+  // Multi-hit: count the HP number down one hit at a time, in step with the bar and shakes.
+  if (app.querySelectorAll) app.querySelectorAll('.hpv').forEach(el => {
+    el.dataset.seq.split(',').slice(1).forEach((hp, k) => setTimeout(() => { el.textContent = hp; }, k * HIT_GAP + 120));
+  });
+  if (run.screen === 'battle') { b.fx = []; b.steps = { rival: [], you: [] }; b.dealing = false; }
   if (run.screen !== lastScreen && app.classList) {
     lastScreen = run.screen;
     app.classList.remove('enter'); void app.offsetWidth; app.classList.add('enter');
