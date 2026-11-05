@@ -387,6 +387,11 @@ function previewDamage(bases) {
 // Card text for a card in hand, with damage numbers coloured when buffs/debuffs change them.
 function liveText(c) {
   const num = (val, base) => (val > base ? `<span class="nbuf">${val}</span>` : val < base ? `<span class="ndeb">${val}</span>` : `${val}`);
+  if (!c.hits) { // block cards: Ground Effect adds to every block gained; Rubber Wall scales with wear
+    const rw = /^Block = (\d)x tyre wear \(min (\d)\)\.$/.exec(c.text);
+    if (rw) { const base = Math.max(+rw[2], +rw[1] * b.wear); return `Gain ${num(base + b.armor, base)} block (${rw[1]}x wear, min ${rw[2]}).`; }
+    return c.text.replace(/(\d+) block/, (_, n) => `${num(+n + b.armor, +n)} block`);
+  }
   const bases = c.hits(b.hand.length - 1); // the card itself is still in the hand here
   const v = previewDamage(bases).map((x, i) => num(x, bases[i]));
   const p = n => num(previewDamage([n])[0], n);
@@ -578,7 +583,7 @@ const hasFx = (target, kind) => b.fx.some(f => f.target === target && f.kind ===
 const cardHtml = (id, opts = {}) => {
   const c = CARDS[id];
   return `<button class="card ${c.type} ${c.upgraded ? 'up' : ''} ${opts.sel ? 'sel' : ''} ${opts.no ? 'no' : ''} ${opts.deal ? 'deal' : ''}" style="${opts.deal ? `animation-delay:${opts.i * 70}ms` : ''}" data-act="${opts.act || ''}">
-    <div class="cost">${c.cost}</div><div class="nm">${c.name}</div><div class="ic">${c.icon}</div><div class="tx">${opts.live && c.hits ? liveText(c) : c.text}</div></button>`;
+    <div class="cost">${c.cost}</div><div class="nm">${c.name}</div><div class="ic">${c.icon}</div><div class="tx">${opts.live ? liveText(c) : c.text}</div></button>`;
 };
 const topBar = () => `<div class="top"><span>Round <b>${Math.min(run.floor + 1, FLOORS)}/${FLOORS}</b></span><span>❤️ <b>${run.hp}/${run.maxHp}</b></span><span>💰 <b>${run.gold}</b></span><span>🃏 <b>${run.deck.length}</b></span>${run.screen === 'battle' ? '<button class="mute" data-act="mapview" aria-label="View map">🗺️</button>' : ''}<button class="mute" data-act="help" aria-label="How to play">❓</button><button class="mute" data-act="mute" aria-label="Toggle sound">${Sfx.muted ? '🔇' : '🔊'}</button></div>${subBar()}`;
 // Row under the top bar: sponsors on the left, run timer on the right.
