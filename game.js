@@ -203,7 +203,7 @@ function hasSp(id) { return !!(run && run.sponsors && run.sponsors.includes(id))
 const SAVE_KEY = 'pw-save', SAVE_VER = 2; // bumped: older saves have a different map length
 const SAVE_SCREENS = new Set(['map', 'reward', 'sponsor', 'garage', 'shop', 'remove', 'upgrade']);
 function saveRun() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ver: SAVE_VER, run: { ...run, help: false, pileView: null, sponsorView: false, mapView: false } })); } catch (e) {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ver: SAVE_VER, run: { ...run, time: elapsedMs(), help: false, pileView: null, sponsorView: false, mapView: false } })); } catch (e) {}
 }
 function peekSave() {
   try {
@@ -214,13 +214,43 @@ function peekSave() {
 }
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
 
+/* ---------- Run timer: counts only while you're actively playing a run ---------- */
+const TIMED_SCREENS = new Set([...SAVE_SCREENS, 'battle']);
+let tickStart = null, timedRun = null;
+const pageVisible = () => !(typeof document !== 'undefined' && document.hidden);
+// Banks the running stretch into run.time whenever play pauses (tab hidden, run over, left the run).
+function syncTimer() {
+  if (timedRun !== run) { timedRun = run; tickStart = null; }
+  const should = !!run && TIMED_SCREENS.has(run.screen) && pageVisible();
+  if (should && tickStart === null) tickStart = Date.now();
+  else if (!should && tickStart !== null) { run.time = (run.time || 0) + (Date.now() - tickStart); tickStart = null; }
+}
+function elapsedMs() { return ((run && run.time) || 0) + (tickStart !== null ? Date.now() - tickStart : 0); }
+function fmtTime(ms) {
+  const sec = Math.max(0, Math.floor((ms || 0) / 1000)), h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), r = sec % 60;
+  const p = n => String(n).padStart(2, '0');
+  return h ? `${h}:${p(m)}:${p(r)}` : `${m}:${p(r)}`;
+}
+// Keep the stored save's clock current, so closing the tab mid-fight doesn't lose time.
+function touchSaveTime() {
+  if (!run || !TIMED_SCREENS.has(run.screen)) return;
+  try {
+    const sv = JSON.parse(localStorage.getItem(SAVE_KEY));
+    if (sv && sv.run) { sv.run.time = elapsedMs(); localStorage.setItem(SAVE_KEY, JSON.stringify(sv)); }
+  } catch (e) {}
+}
+
 /* ---------- Stats (kept on this device) ---------- */
 const STATS_KEY = 'pw-stats';
-const blankStats = () => ({ v: 1, totals: { runs: 0, wins: 0, fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0, bestRound: 0 }, history: [] });
+const blankStats = () => ({ v: 1, totals: { runs: 0, wins: 0, fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0, bestRound: 0, totalTime: 0, bestTime: null }, history: [] });
 function loadStats() {
   try {
     const s = JSON.parse(localStorage.getItem(STATS_KEY));
-    if (s && s.v === 1 && s.totals && Array.isArray(s.history)) return s;
+    if (s && s.v === 1 && s.totals && Array.isArray(s.history)) {
+      s.totals.totalTime = s.totals.totalTime || 0; // stats saved before the timer existed
+      if (s.totals.bestTime === undefined) s.totals.bestTime = null;
+      return s;
+    }
   } catch (e) {}
   return blankStats();
 }
@@ -236,12 +266,16 @@ function recordRun(r, result, killedBy) {
   r.recorded = true;
   const st = loadStats(), t = st.totals, rs = r.stats || {};
   const round = result === 'win' ? FLOORS : Math.min((r.floor || 0) + 1, FLOORS);
+  const time = r === run ? elapsedMs() : (r.time || 0); // saved runs carry their own clock
+  r.finalTime = time;
   t.runs++;
+  t.totalTime += time;
+  if (result === 'win' && (t.bestTime === null || time < t.bestTime)) { t.bestTime = time; r.newBest = true; }
   if (result === 'win') t.wins++;
   t.fights += rs.fights || 0; t.elites += rs.elites || 0; t.cards += rs.cards || 0;
   t.dmgDealt += rs.dmgDealt || 0; t.dmgTaken += rs.dmgTaken || 0;
   t.bestRound = Math.max(t.bestRound, round);
-  st.history.unshift({ t: Date.now(), result, round, deck: (r.deck || []).length, sponsors: r.sponsors || [], killedBy: killedBy || null });
+  st.history.unshift({ t: Date.now(), result, round, time, deck: (r.deck || []).length, sponsors: r.sponsors || [], killedBy: killedBy || null });
   st.history.length = Math.min(st.history.length, 30);
   saveStats(st);
 }
@@ -510,9 +544,10 @@ const cardHtml = (id, opts = {}) => {
   return `<button class="card ${c.type} ${c.upgraded ? 'up' : ''} ${opts.sel ? 'sel' : ''} ${opts.no ? 'no' : ''} ${opts.deal ? 'deal' : ''}" style="${opts.deal ? `animation-delay:${opts.i * 70}ms` : ''}" data-act="${opts.act || ''}">
     <div class="cost">${c.cost}</div><div class="nm">${c.name}</div><div class="ic">${c.icon}</div><div class="tx">${opts.live && c.hits ? liveText(c) : c.text}</div></button>`;
 };
-const topBar = () => `<div class="top"><span>Round <b>${Math.min(run.floor + 1, FLOORS)}/${FLOORS}</b></span><span>❤️ <b>${run.hp}/${run.maxHp}</b></span><span>💰 <b>${run.gold}</b></span><span>🃏 <b>${run.deck.length}</b></span>${run.screen === 'battle' ? '<button class="mute" data-act="mapview" aria-label="View map">🗺️</button>' : ''}<button class="mute" data-act="help" aria-label="How to play">❓</button><button class="mute" data-act="mute" aria-label="Toggle sound">${Sfx.muted ? '🔇' : '🔊'}</button></div>${sponsorStrip()}`;
-const sponsorStrip = () => run.sponsors && run.sponsors.length
-  ? `<button class="spons" data-act="sponsors" aria-label="View sponsors">${run.sponsors.map(id => SPONSORS[id].icon).join(' ')}</button>` : '';
+const topBar = () => `<div class="top"><span>Round <b>${Math.min(run.floor + 1, FLOORS)}/${FLOORS}</b></span><span>❤️ <b>${run.hp}/${run.maxHp}</b></span><span>💰 <b>${run.gold}</b></span><span>🃏 <b>${run.deck.length}</b></span>${run.screen === 'battle' ? '<button class="mute" data-act="mapview" aria-label="View map">🗺️</button>' : ''}<button class="mute" data-act="help" aria-label="How to play">❓</button><button class="mute" data-act="mute" aria-label="Toggle sound">${Sfx.muted ? '🔇' : '🔊'}</button></div>${subBar()}`;
+// Row under the top bar: sponsors on the left, run timer on the right.
+const subBar = () => `<div class="subbar">${run.sponsors && run.sponsors.length
+  ? `<button class="spons" data-act="sponsors" aria-label="View sponsors">${run.sponsors.map(id => SPONSORS[id].icon).join(' ')}</button>` : '<span></span>'}<span class="timer" aria-label="Run time">⏱ ${fmtTime(elapsedMs())}</span></div>`;
 
 function vSponsor() {
   return `${topBar()}<div class="center"><h2>🏷️ New Sponsor!</h2><div class="muted">Beating a Duel earns you a sponsorship deal. Tap to sign it.</div>
@@ -746,11 +781,11 @@ function vRemove() {
 }
 
 function vOver() {
-  return `<div class="center"><h2>💥 DNF</h2><div class="muted">Your season ended on round ${run.floor + 1}.</div>
+  return `<div class="center"><h2>💥 DNF</h2><div class="muted">Your season ended on round ${run.floor + 1}.</div><div class="muted">⏱ ${fmtTime(run.finalTime || run.time)}</div>
     <div class="stack"><button class="btn" data-act="start">New Season</button><button class="btn alt" data-act="home">Main Menu</button></div></div>`;
 }
 function vWin() {
-  return `<div class="center"><h1>🏆</h1><h2>World Champion!</h2><div class="muted">Deck size: ${run.deck.length} · HP left: ${run.hp}</div>
+  return `<div class="center"><h1>🏆</h1><h2>World Champion!</h2><div class="bigtime">⏱ ${fmtTime(run.finalTime || run.time)}</div>${run.newBest ? '<div class="newbest">New fastest win!</div>' : ''}<div class="muted">Deck size: ${run.deck.length} · HP left: ${run.hp}</div>
     <button class="btn" data-act="home">Back to Main Menu</button></div>`;
 }
 
@@ -761,13 +796,14 @@ function vStats() {
     ['🏁', 'Runs', t.runs], ['🏆', 'Wins', t.wins], ['📈', 'Win rate', `${rate}%`],
     ['🥇', 'Best round', t.bestRound ? `${t.bestRound}/${FLOORS}` : '—'], ['⚔️', 'Fights won', t.fights], ['⚡', 'Duels won', t.elites],
     ['🃏', 'Cards played', t.cards], ['💥', 'Damage dealt', t.dmgDealt], ['🩹', 'Damage taken', t.dmgTaken],
+    ['⏱️', 'Fastest win', t.bestTime === null ? '—' : fmtTime(t.bestTime)], ['📊', 'Avg run', t.runs ? fmtTime(Math.round(t.totalTime / t.runs)) : '—'], ['⌛', 'Total time', fmtTime(t.totalTime)],
   ].map(([i, l, v]) => `<div class="tile"><div class="tv">${typeof v === 'number' ? v.toLocaleString() : v}</div><div class="tl">${i} ${l}</div></div>`).join('');
   const rows = st.history.length ? st.history.map(h => {
     const ic = h.result === 'win' ? '🏆' : h.result === 'loss' ? '💥' : '🚪';
     const head = h.result === 'win' ? 'World Champion!' : h.result === 'loss' ? `DNF in round ${h.round}${h.killedBy ? ` · ${h.killedBy}` : ''}` : `Abandoned in round ${h.round}`;
     const date = new Date(h.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     const sp = (h.sponsors || []).map(id => (SPONSORS[id] ? SPONSORS[id].icon : '')).join('');
-    return `<div class="hrow ${h.result}"><span class="hic">${ic}</span><span><b>${head}</b><br><small>${date} · ${h.deck} cards${sp ? ` · ${sp}` : ''}</small></span></div>`;
+    return `<div class="hrow ${h.result}"><span class="hic">${ic}</span><span><b>${head}</b><br><small>${date}${h.time ? ` · ⏱ ${fmtTime(h.time)}` : ''} · ${h.deck} cards${sp ? ` · ${sp}` : ''}</small></span></div>`;
   }).join('') : '<div class="muted" style="text-align:center;padding:18px 0">No runs yet. Finish a season and it shows up here.</div>';
   return `<div class="top"><button class="btn alt back" data-act="home">‹ Back</button><b style="color:var(--text)">Your Stats</b><span style="width:70px"></span></div>
     <div class="statsbody">
@@ -781,6 +817,7 @@ function vStats() {
 
 const VIEWS = { upgrade: vUpgrade, stats: vStats, sponsor: vSponsor, shop: vShop, title: vTitle, map: vMap, battle: vBattle, reward: vReward, garage: vGarage, remove: vRemove, over: vOver, win: vWin };
 function render() {
+  syncTimer();
   const hand = app.querySelector('.hand');
   const sx = hand ? hand.scrollLeft : 0;
   const gridEl = app.querySelector('.grid');
@@ -890,5 +927,18 @@ app.addEventListener('click', e => {
     case 'shopHeal': run.gold -= HEAL_COST; run.shop.healed = true; run.hp = Math.min(run.maxHp, run.hp + HEAL_AMT); Sfx.heal(); render(); break;
   }
 });
+
+/* ---------- Timer ticking (browser only) ---------- */
+if (typeof window !== 'undefined' && window.addEventListener) {
+  let ticks = 0;
+  setInterval(() => {
+    syncTimer();
+    const label = '⏱ ' + fmtTime(elapsedMs());
+    document.querySelectorAll('.timer').forEach(el => { el.textContent = label; });
+    if (++ticks % 15 === 0) touchSaveTime();
+  }, 1000);
+  document.addEventListener('visibilitychange', () => { syncTimer(); touchSaveTime(); });
+  window.addEventListener('pagehide', () => { syncTimer(); touchSaveTime(); });
+}
 
 render();
