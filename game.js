@@ -69,11 +69,11 @@ const Sfx = (() => {
 /* ---------- Cards ---------- */
 // b = battle state; helpers below
 const CARDS = {
-  overtake:    { name: 'Overtake',     cost: 1, type: 'attack',  icon: '🏎️', text: 'Deal 6.',                         play: () => hit(6) },
-  slipstream:  { name: 'Slipstream',   cost: 1, type: 'attack',  icon: '💨', text: 'Deal 4. Draw 1.',                 play: () => { hit(4); draw(1); } },
-  drsblast:    { name: 'DRS Blast',    cost: 1, type: 'attack',  icon: '📡', text: 'Deal 9. +1 wear.',                play: () => { hit(9); addWear(1); } },
-  divebomb:    { name: 'Dive Bomb',    cost: 2, type: 'attack',  icon: '💥', text: 'Deal 15. +2 wear.',               play: () => { hit(15); addWear(2); } },
-  latebraking: { name: 'Late Braking', cost: 2, type: 'attack',  icon: '🛑', text: 'Deal 8 twice.',                   play: () => { hit(8); hit(8); } },
+  overtake:    { name: 'Overtake',     cost: 1, type: 'attack',  icon: '🏎️', text: 'Deal 6.', hits: () => [6], fmt: v => `Deal ${v[0]}.` },
+  slipstream:  { name: 'Slipstream',   cost: 1, type: 'attack',  icon: '💨', text: 'Deal 4. Draw 1.', hits: () => [4], after: () => draw(1), fmt: v => `Deal ${v[0]}. Draw 1.` },
+  drsblast:    { name: 'DRS Blast',    cost: 1, type: 'attack',  icon: '📡', text: 'Deal 9. +1 wear.', hits: () => [9], after: () => addWear(1), fmt: v => `Deal ${v[0]}. +1 wear.` },
+  divebomb:    { name: 'Dive Bomb',    cost: 2, type: 'attack',  icon: '💥', text: 'Deal 15. +2 wear.', hits: () => [15], after: () => addWear(2), fmt: v => `Deal ${v[0]}. +2 wear.` },
+  latebraking: { name: 'Late Braking', cost: 2, type: 'attack',  icon: '🛑', text: 'Deal 8 twice.', hits: () => [8, 8], fmt: v => (v[0] === v[1] ? `Deal ${v[0]} twice.` : `Deal ${v[0]} + ${v[1]}.`) },
   defend:      { name: 'Defend Line',  cost: 1, type: 'defence', icon: '🛡️', text: 'Gain 5 block.',                   play: () => block(5) },
   blockpass:   { name: 'Block Pass',   cost: 2, type: 'defence', icon: '🚧', text: 'Gain 12 block.',                  play: () => block(12) },
   liftcoast:   { name: 'Lift & Coast', cost: 0, type: 'defence', icon: '🍃', text: 'Gain 3 block. -1 wear.',          play: () => { block(3); addWear(-1); } },
@@ -86,11 +86,11 @@ const CARDS = {
   fuelsave:    { name: 'Fuel Save',    cost: 1, type: 'skill',   icon: '⛽', text: 'Heal 5. Gain 4 block.',           play: () => { run.hp = Math.min(run.maxHp, run.hp + 5); block(4); Sfx.heal(); fx('player', 'heal', '+5'); } },
 
   // --- more attacks ---
-  cutback:     { name: 'Cutback',      cost: 1, type: 'attack',  icon: '↩️', text: 'Deal 5. Deal 11 if rival has block.', play: () => hit(b.rival.block > 0 ? 11 : 5) },
-  lunge:       { name: 'Lunge',        cost: 0, type: 'attack',  icon: '🦅', text: 'Deal 4. +1 wear.',                play: () => { hit(4); addWear(1); } },
-  fastestlap:  { name: 'Fastest Lap',  cost: 2, type: 'attack',  icon: '⏱️', text: 'Deal 10. Draw 1. +1 wear.',       play: () => { hit(10); draw(1); addWear(1); } },
-  slingshot:   { name: 'Slingshot',    cost: 1, type: 'attack',  icon: '🪃', text: 'Deal 2 per card in your hand.',   play: () => hit(2 * b.hand.length) },
-  fullsend:    { name: 'Full Send',    cost: 3, type: 'attack',  icon: '🚀', text: 'Deal 26. +3 wear.',               play: () => { hit(26); addWear(3); } },
+  cutback:     { name: 'Cutback',      cost: 1, type: 'attack',  icon: '↩️', text: 'Deal 5. Deal 11 if rival has block.', hits: () => [b.rival.block > 0 ? 11 : 5], fmt: (v, p) => `Deal ${p(5)}. Deal ${p(11)} if rival has block.` },
+  lunge:       { name: 'Lunge',        cost: 0, type: 'attack',  icon: '🦅', text: 'Deal 4. +1 wear.', hits: () => [4], after: () => addWear(1), fmt: v => `Deal ${v[0]}. +1 wear.` },
+  fastestlap:  { name: 'Fastest Lap',  cost: 2, type: 'attack',  icon: '⏱️', text: 'Deal 10. Draw 1. +1 wear.', hits: () => [10], after: () => { draw(1); addWear(1); }, fmt: v => `Deal ${v[0]}. Draw 1. +1 wear.` },
+  slingshot:   { name: 'Slingshot',    cost: 1, type: 'attack',  icon: '🪃', text: 'Deal 2 per card in your hand.', hits: others => [2 * others], fmt: v => `Deal ${v[0]} (2 per card).` },
+  fullsend:    { name: 'Full Send',    cost: 3, type: 'attack',  icon: '🚀', text: 'Deal 26. +3 wear.', hits: () => [26], after: () => addWear(3), fmt: v => `Deal ${v[0]}. +3 wear.` },
   // --- more defence ---
   brakebias:   { name: 'Brake Bias',   cost: 1, type: 'defence', icon: '⚖️', text: 'Gain 6 block. Draw 1.',           play: () => { block(6); draw(1); } },
   wetsetup:    { name: 'Wet Setup',    cost: 2, type: 'defence', icon: '🌧️', text: 'Gain 10 block. -2 wear.',         play: () => { block(10); addWear(-2); } },
@@ -106,16 +106,16 @@ const CARDS = {
 };
 /* ---------- Upgrades: id -> improved version stored as "id+" ---------- */
 const UPGRADES = {
-  overtake:    { text: 'Deal 9.',                          play: () => hit(9) },
-  slipstream:  { text: 'Deal 6. Draw 2.',                  play: () => { hit(6); draw(2); } },
-  drsblast:    { text: 'Deal 12. +1 wear.',                play: () => { hit(12); addWear(1); } },
-  divebomb:    { text: 'Deal 20. +2 wear.',                play: () => { hit(20); addWear(2); } },
-  latebraking: { text: 'Deal 11 twice.',                   play: () => { hit(11); hit(11); } },
-  cutback:     { text: 'Deal 8. Deal 15 if rival has block.', play: () => hit(b.rival.block > 0 ? 15 : 8) },
-  lunge:       { text: 'Deal 7. +1 wear.',                 play: () => { hit(7); addWear(1); } },
-  fastestlap:  { text: 'Deal 14. Draw 1. +1 wear.',        play: () => { hit(14); draw(1); addWear(1); } },
-  slingshot:   { text: 'Deal 3 per card in your hand.',    play: () => hit(3 * b.hand.length) },
-  fullsend:    { cost: 2, text: 'Deal 26. +3 wear.',       play: () => { hit(26); addWear(3); } },
+  overtake:    { text: 'Deal 9.', hits: () => [9] },
+  slipstream:  { text: 'Deal 6. Draw 2.', hits: () => [6], after: () => draw(2), fmt: v => `Deal ${v[0]}. Draw 2.` },
+  drsblast:    { text: 'Deal 12. +1 wear.', hits: () => [12] },
+  divebomb:    { text: 'Deal 20. +2 wear.', hits: () => [20] },
+  latebraking: { text: 'Deal 11 twice.', hits: () => [11, 11] },
+  cutback:     { text: 'Deal 8. Deal 15 if rival has block.', hits: () => [b.rival.block > 0 ? 15 : 8], fmt: (v, p) => `Deal ${p(8)}. Deal ${p(15)} if rival has block.` },
+  lunge:       { text: 'Deal 7. +1 wear.', hits: () => [7] },
+  fastestlap:  { text: 'Deal 14. Draw 1. +1 wear.', hits: () => [14] },
+  slingshot:   { text: 'Deal 3 per card in your hand.', hits: others => [3 * others], fmt: v => `Deal ${v[0]} (3 per card).` },
+  fullsend:    { cost: 2, text: 'Deal 26. +3 wear.', hits: () => [26] },
   defend:      { text: 'Gain 8 block.',                    play: () => block(8) },
   blockpass:   { text: 'Gain 17 block.',                   play: () => block(17) },
   liftcoast:   { text: 'Gain 5 block. -2 wear.',           play: () => { block(5); addWear(-2); } },
@@ -138,6 +138,10 @@ const UPGRADES = {
   mindgames:   { text: 'Rival attack -3 this fight. Exhaust.', play: () => { b.rival.str -= 3; Sfx.ers(); fx('rival', 'buff', '-3 atk'); } },
 };
 for (const id of Object.keys(UPGRADES)) CARDS[id + '+'] = { ...CARDS[id], ...UPGRADES[id], name: CARDS[id].name + '+', upgraded: true };
+// Attack cards describe their damage with hits(); playing the card and the live text shown in
+// your hand both use it, so the numbers on a card can never drift from what really happens.
+// hits(others) gets the number of OTHER cards in hand (slingshot cares).
+for (const c of Object.values(CARDS)) if (c.hits) c.play = () => { c.hits(b.hand.length).forEach(d => hit(d)); if (c.after) c.after(); };
 const canUpgrade = id => !!UPGRADES[id]; // upgraded ids ("x+") aren't in UPGRADES, so they can't be upgraded twice
 
 const STARTER = ['overtake', 'overtake', 'overtake', 'overtake', 'defend', 'defend', 'defend', 'defend', 'pitstop', 'slipstream'];
@@ -199,7 +203,7 @@ function hasSp(id) { return !!(run && run.sponsors && run.sponsors.includes(id))
 const SAVE_KEY = 'pw-save', SAVE_VER = 2; // bumped: older saves have a different map length
 const SAVE_SCREENS = new Set(['map', 'reward', 'sponsor', 'garage', 'shop', 'remove', 'upgrade']);
 function saveRun() {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ver: SAVE_VER, run: { ...run, help: false, pileView: null, sponsorView: false } })); } catch (e) {}
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ver: SAVE_VER, run: { ...run, help: false, pileView: null, sponsorView: false, mapView: false } })); } catch (e) {}
 }
 function peekSave() {
   try {
@@ -243,7 +247,7 @@ function recordRun(r, result, killedBy) {
 }
 
 function newRun() {
-  run = { screen: 'map', hp: 70, maxHp: 70, gold: 50, deck: [...STARTER], floor: 0, path: [], sponsors: [], stats: { fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0 }, map: genMap(), help: false, pileView: null, sponsorView: false };
+  run = { screen: 'map', hp: 70, maxHp: 70, gold: 50, deck: [...STARTER], floor: 0, path: [], sponsors: [], stats: { fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0 }, map: genMap(), help: false, pileView: null, sponsorView: false, mapView: false };
   render();
 }
 
@@ -292,13 +296,20 @@ function availLanes() {
   return prev ? prev.next : [];
 }
 
-// For each floor, the set of lanes still reachable from where the player stands.
-function reachableSets() {
-  const R = Array.from({ length: FLOORS }, () => new Set());
-  if (run.floor >= FLOORS) return R;
-  availLanes().forEach(l => R[run.floor].add(l));
-  for (let f = run.floor; f < FLOORS - 1; f++) R[f].forEach(l => run.map.nodes[f][l].next.forEach(n => R[f + 1].add(n)));
-  return R;
+// Where the player stands on the map, for drawing it. On the map screen the current floor is still
+// to be chosen; during a battle that floor's node is already chosen and the next floor's options
+// hang off it.
+function mapState() {
+  const nodes = run.map.nodes;
+  const inBattle = run.screen === 'battle';
+  const last = inBattle ? run.floor : run.floor - 1; // last floor with a chosen node
+  const nextFloor = inBattle ? run.floor + 1 : run.floor;
+  const cur = inBattle ? nodes[run.floor][run.path[run.floor]] : null;
+  const nextLanes = inBattle ? (cur ? cur.next : []) : availLanes();
+  const R = Array.from({ length: FLOORS }, () => new Set()); // lanes still reachable, per floor
+  if (nextFloor < FLOORS) nextLanes.forEach(l => R[nextFloor].add(l));
+  for (let f = nextFloor; f < FLOORS - 1; f++) R[f].forEach(l => nodes[f][l].next.forEach(n => R[f + 1].add(n)));
+  return { inBattle, last, nextFloor, nextLanes, R };
 }
 
 /* ---------- Battle helpers ---------- */
@@ -318,6 +329,25 @@ function hit(n) {
   r.hp = Math.max(0, r.hp - dealt);
   if (dealt > 0) { fx('rival', 'dmg', `-${dealt}`); Sfx.hit(); } else { fx('rival', 'blocked', 'Blocked'); Sfx.block(); }
   log(`You hit for ${d}.`);
+}
+// What a list of hits would really deal right now (same rules as hit(), without changing anything).
+function previewDamage(bases) {
+  let softs = b.softs, fan = !b.hitTurn && hasSp('fanclub');
+  return bases.map(n => {
+    let d = n + b.boost;
+    if (fan) { d += 4; fan = false; }
+    if (softs > 0) { d += 3; softs--; }
+    if (b.wear >= b.maxWear) d = Math.floor(d / 2);
+    return d;
+  });
+}
+// Card text for a card in hand, with damage numbers coloured when buffs/debuffs change them.
+function liveText(c) {
+  const num = (val, base) => (val > base ? `<span class="nbuf">${val}</span>` : val < base ? `<span class="ndeb">${val}</span>` : `${val}`);
+  const bases = c.hits(b.hand.length - 1); // the card itself is still in the hand here
+  const v = previewDamage(bases).map((x, i) => num(x, bases[i]));
+  const p = n => num(previewDamage([n])[0], n);
+  return c.fmt ? c.fmt(v, p) : c.text;
 }
 function block(n) { b.block += n; fx('player', 'block', `+${n}🛡️`); Sfx.block(); }
 function addWear(n) {
@@ -355,6 +385,7 @@ function startBattle(nodeType) {
   };
   barPrev = {};
   run.pileView = null;
+  run.mapView = false;
   Sfx.rev();
   run.screen = 'battle';
   startTurn();
@@ -477,9 +508,9 @@ const hasFx = (target, kind) => b.fx.some(f => f.target === target && f.kind ===
 const cardHtml = (id, opts = {}) => {
   const c = CARDS[id];
   return `<button class="card ${c.type} ${c.upgraded ? 'up' : ''} ${opts.sel ? 'sel' : ''} ${opts.no ? 'no' : ''} ${opts.deal ? 'deal' : ''}" style="${opts.deal ? `animation-delay:${opts.i * 70}ms` : ''}" data-act="${opts.act || ''}">
-    <div class="cost">${c.cost}</div><div class="nm">${c.name}</div><div class="ic">${c.icon}</div><div class="tx">${c.text}</div></button>`;
+    <div class="cost">${c.cost}</div><div class="nm">${c.name}</div><div class="ic">${c.icon}</div><div class="tx">${opts.live && c.hits ? liveText(c) : c.text}</div></button>`;
 };
-const topBar = () => `<div class="top"><span>Round <b>${Math.min(run.floor + 1, FLOORS)}/${FLOORS}</b></span><span>❤️ <b>${run.hp}/${run.maxHp}</b></span><span>💰 <b>${run.gold}</b></span><span>🃏 <b>${run.deck.length}</b></span><button class="mute" data-act="help" aria-label="How to play">❓</button><button class="mute" data-act="mute" aria-label="Toggle sound">${Sfx.muted ? '🔇' : '🔊'}</button></div>${sponsorStrip()}`;
+const topBar = () => `<div class="top"><span>Round <b>${Math.min(run.floor + 1, FLOORS)}/${FLOORS}</b></span><span>❤️ <b>${run.hp}/${run.maxHp}</b></span><span>💰 <b>${run.gold}</b></span><span>🃏 <b>${run.deck.length}</b></span>${run.screen === 'battle' ? '<button class="mute" data-act="mapview" aria-label="View map">🗺️</button>' : ''}<button class="mute" data-act="help" aria-label="How to play">❓</button><button class="mute" data-act="mute" aria-label="Toggle sound">${Sfx.muted ? '🔇' : '🔊'}</button></div>${sponsorStrip()}`;
 const sponsorStrip = () => run.sponsors && run.sponsors.length
   ? `<button class="spons" data-act="sponsors" aria-label="View sponsors">${run.sponsors.map(id => SPONSORS[id].icon).join(' ')}</button>` : '';
 
@@ -510,22 +541,37 @@ function vTitle() {
     </div></div>`;
 }
 
-function vMap() {
-  const R = reachableSets(), av = availLanes();
+// The route map itself. viewOnly (used mid-battle) makes every stop non-clickable.
+function mapBody(viewOnly) {
+  const S = mapState();
   const rows = run.map.nodes.map((row, f) => {
     const cells = row.map((n, l) => {
       if (!n) return '<div class="cell"></div>';
-      const taken = f < run.floor && run.path[f] === l;
-      const avail = f === run.floor && av.includes(l);
-      const live = f >= run.floor && R[f].has(l);
-      const cls = taken ? 'done' : avail ? 'avail' : live ? 'future' : 'locked';
+      const here = S.inBattle && f === run.floor && run.path[f] === l;
+      const taken = !here && f <= S.last && run.path[f] === l;
+      const avail = f === S.nextFloor && S.nextLanes.includes(l);
+      const live = f >= S.nextFloor && S.R[f].has(l);
+      const cls = here ? 'cur' : taken ? 'done' : avail ? 'avail' : live ? 'future' : 'locked';
       const info = NODES[n.t];
-      return `<div class="cell"><button class="node ${cls}" data-n="${f},${l}" ${avail ? `data-act="node:${l}"` : 'disabled'}><span class="ic">${info.icon}</span><span class="lb">${info.short}</span></button></div>`;
+      const clickable = avail && !viewOnly && !S.inBattle;
+      return `<div class="cell"><button class="node ${cls}" data-n="${f},${l}" ${clickable ? `data-act="node:${l}"` : 'disabled'}>${here ? '<span class="pin">📍</span>' : ''}<span class="ic">${info.icon}</span><span class="lb">${info.short}</span></button></div>`;
     }).join('');
     return `<div class="floor">${cells}</div>`;
   }).join('');
-  return `${topBar()}<div class="map"><div class="mapin"><svg class="paths"></svg>${rows}</div></div>
+  return `<div class="map"><div class="mapin"><svg class="paths"></svg>${rows}</div></div>`;
+}
+
+function vMap() {
+  return `${topBar()}${mapBody(false)}
     <div class="legend">Choose a route. Paths you don't take are locked out.</div>`;
+}
+
+// Read-only map shown on top of a battle.
+function vMapView() {
+  return `<div class="overlay"><div class="backdrop" data-act="mapclose"></div><div class="sheet mapsheet">
+    <div class="row"><h2 style="margin:0">Season map</h2><button class="btn alt back" data-act="mapclose">Close</button></div>
+    ${mapBody(true)}
+    <div class="legend">📍 You are here · view only</div></div></div>`;
 }
 
 function drawPaths() {
@@ -536,7 +582,7 @@ function drawPaths() {
   const wr = wrap.getBoundingClientRect();
   svg.setAttribute('width', wr.width);
   svg.setAttribute('height', wr.height);
-  const R = reachableSets();
+  const S = mapState();
   const center = (f, l) => {
     const el = wrap.querySelector(`[data-n="${f},${l}"]`);
     if (!el) return null;
@@ -550,20 +596,20 @@ function drawPaths() {
       const a = center(f, l), c = center(f + 1, nl);
       if (!a || !c) return;
       let cls = 'dead';
-      if (f + 1 < run.floor && run.path[f] === l && run.path[f + 1] === nl) cls = 'taken';
-      else if (f === run.floor - 1 && run.path[f] === l) cls = 'open';
-      else if (f >= run.floor && R[f].has(l)) cls = 'live';
+      if (f + 1 <= S.last && run.path[f] === l && run.path[f + 1] === nl) cls = 'taken';
+      else if (f === S.last && run.path[f] === l) cls = 'open';
+      else if (f >= S.nextFloor && S.R[f].has(l)) cls = 'live';
       out += `<line class="${cls}" x1="${a.x}" y1="${a.y}" x2="${c.x}" y2="${c.y}"/>`;
     });
   }));
   svg.innerHTML = out;
-  const cur = wrap.querySelector('.node.avail');
+  const cur = wrap.querySelector('.node.cur') || wrap.querySelector('.node.avail');
   if (map && cur) {
     const top = cur.getBoundingClientRect().top - wr.top;
     map.scrollTop = Math.max(0, top - map.clientHeight / 2);
   }
 }
-if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (run.screen === 'map') drawPaths(); });
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths(); });
 
 function vHelp() {
   return `<div class="overlay"><div class="backdrop" data-act="helpclose"></div><div class="sheet">
@@ -609,10 +655,11 @@ function vPiles() {
 function vBattle() {
   const r = b.rival, m = intent();
   const dmg = m.t === 'atk' ? Math.max(0, m.v + r.str) : 0;
-  const it = b.cancel ? '🚨 Cancelled' : m.t === 'atk' ? `⚔️ ${dmg}${m.n > 1 ? `×${m.n}` : ''}${m.wear ? ' + 🛞' : ''}` : m.t === 'def' ? `🛡️ ${m.v}` : `⬆️ +${m.v} attack`;
+  const wearHit = m.t === 'atk' && m.wear ? (hasSp('rain') ? Math.floor(m.wear / 2) : m.wear) : 0; // Rain Gear halves it
+  const it = b.cancel ? '🚨 Cancelled' : m.t === 'atk' ? `⚔️ ${dmg}${m.n > 1 ? `×${m.n}` : ''}${wearHit ? ` + 🛞${wearHit}` : ''}` : m.t === 'def' ? `🛡️ ${m.v}` : `⬆️ +${m.v} attack`;
   const segs = Array.from({ length: b.maxWear }, (_, i) => `<div class="seg ${i < b.wear ? 'on' : ''}"></div>`).join('');
   const sel = b.sel >= 0 ? CARDS[b.hand[b.sel]] : null;
-  const hand = b.hand.map((id, i) => cardHtml(id, { act: `card:${i}`, sel: i === b.sel, no: CARDS[id].cost > b.energy, deal: b.dealing, i })).join('');
+  const hand = b.hand.map((id, i) => cardHtml(id, { act: `card:${i}`, sel: i === b.sel, no: CARDS[id].cost > b.energy, deal: b.dealing, live: true, i })).join('');
   const ko = r.hp <= 0 ? 'ko' : '';
   const rivalCls = `rival ${hasFx('rival', 'dmg') ? 'shake' : ''} ${hasFx('rival', 'lunge') ? 'lunge' : ''}`;
   const playerCls = `player ${hasFx('player', 'dmg') ? 'shake hurt' : ''}`;
@@ -740,12 +787,12 @@ function render() {
   const gy = gridEl && run.screen === lastScreen ? gridEl.scrollTop : 0; // keep list position while picking cards
   // Only fade in when the screen itself changes, not on every re-render.
   if (run.screen === lastScreen && app.classList) app.classList.remove('enter');
-  app.innerHTML = VIEWS[run.screen]() + (run.help ? vHelp() : '') + (run.pileView && run.screen === 'battle' ? vPiles() : '') + (run.sponsorView && run.sponsors && run.sponsors.length ? vSponsors() : '');
+  app.innerHTML = VIEWS[run.screen]() + (run.help ? vHelp() : '') + (run.pileView && run.screen === 'battle' ? vPiles() : '') + (run.sponsorView && run.sponsors && run.sponsors.length ? vSponsors() : '') + (run.mapView && run.screen === 'battle' ? vMapView() : '');
   const nh = app.querySelector('.hand');
   if (nh) nh.scrollLeft = sx;
   const ng = app.querySelector('.grid');
   if (ng && gy) ng.scrollTop = gy;
-  if (run.screen === 'map') drawPaths();
+  if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths();
   if (SAVE_SCREENS.has(run.screen)) saveRun();
   if (run.screen === 'battle') { b.fx = []; b.dealing = false; }
   if (run.screen !== lastScreen && app.classList) {
@@ -783,7 +830,7 @@ app.addEventListener('click', e => {
     case 'continue': {
       const sv = peekSave();
       if (!sv) break;
-      run = { ...sv, sponsors: sv.sponsors || [], help: false, pileView: null, sponsorView: false };
+      run = { ...sv, sponsors: sv.sponsors || [], help: false, pileView: null, sponsorView: false, mapView: false };
       if (!SAVE_SCREENS.has(run.screen)) run.screen = 'map';
       lastScreen = null;
       render();
@@ -805,6 +852,8 @@ app.addEventListener('click', e => {
     case 'helpclose': run.help = false; render(); break;
     case 'pile': run.pileView = arg; Sfx.tick(); render(); break;
     case 'pileclose': run.pileView = null; render(); break;
+    case 'mapview': run.mapView = true; Sfx.tick(); render(); break;
+    case 'mapclose': run.mapView = false; render(); break;
     case 'node': {
       run.path[run.floor] = +arg;
       const t = run.map.nodes[run.floor][+arg].t;

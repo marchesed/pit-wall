@@ -223,3 +223,17 @@ h2 { margin: 0 0 4px; }
 .upprev { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 0 8px; }
 .upprev .card { pointer-events: none; }
 .uparrow { font-size: 26px; color: var(--gold); }
+
+/* ---------- live card numbers ---------- */
+.nbuf { color: #5be28f; font-weight: 800; }
+.ndeb { color: #ff7a5c; font-weight: 800; }
+
+/* ---------- view-only map during a battle ---------- */
+.node { position: relative; }
+.node .pin { position: absolute; top: -9px; right: -7px; font-size: 16px; filter: drop-shadow(0 1px 2px #000); }
+.node.cur { border-color: var(--gold); background: #3a3416; box-shadow: 0 0 0 3px #f5c54244, 0 0 14px #f5c54288; opacity: 1; }
+.node.cur .lb { color: #fff; }
+.sheet.mapsheet { height: 88dvh; overflow: hidden; }
+.mapsheet .map { flex: 1; min-height: 0; }
+.mapsheet .row { align-items: center; }
+.mapsheet .node:disabled { cursor: default; }
