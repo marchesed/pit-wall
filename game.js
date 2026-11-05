@@ -685,7 +685,7 @@ function drawPaths() {
     map.scrollTop = Math.max(0, top - map.clientHeight / 2);
   }
 }
-if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths(); });
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { fanHand(); if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths(); });
 
 function vHelp() {
   return `<div class="overlay"><div class="backdrop" data-act="helpclose"></div><div class="sheet">
@@ -860,6 +860,16 @@ function vStats() {
 }
 
 const VIEWS = { upgrade: vUpgrade, stats: vStats, sponsor: vSponsor, shop: vShop, title: vTitle, map: vMap, battle: vBattle, reward: vReward, garage: vGarage, remove: vRemove, over: vOver, win: vWin };
+// Overlap the hand just enough that every card fits without scrolling.
+function fanHand() {
+  const h = app.querySelector && app.querySelector('.hand');
+  if (!h || !h.clientWidth) return;
+  const cards = h.querySelectorAll('.card'), n = cards.length;
+  if (!n) return;
+  const room = h.clientWidth - 8, ov = n > 1 ? Math.max(0, (n * cards[0].offsetWidth - room) / (n - 1)) : 0;
+  h.style.setProperty('--ov', ov + 'px');
+}
+
 function render() {
   syncTimer();
   const hand = app.querySelector('.hand');
@@ -871,6 +881,7 @@ function render() {
   app.innerHTML = VIEWS[run.screen]() + (run.help ? vHelp() : '') + (run.pileView && run.screen === 'battle' ? vPiles() : '') + (run.sponsorView && run.sponsors && run.sponsors.length ? vSponsors() : '') + (run.mapView && run.screen === 'battle' ? vMapView() : '');
   const nh = app.querySelector('.hand');
   if (nh) nh.scrollLeft = sx;
+  fanHand();
   const ng = app.querySelector('.grid');
   if (ng && gy) ng.scrollTop = gy;
   if (run.screen === 'map' || (run.mapView && run.screen === 'battle')) drawPaths();

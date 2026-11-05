@@ -63,7 +63,9 @@ h2 { margin: 0 0 4px; }
 .wear.dead .seg.on { background: var(--atk); }
 .log { text-align: center; min-height: 20px; font-size: 13px; color: var(--muted); }
 
-.hand { display: flex; gap: 8px; overflow-x: auto; padding: 22px 4px 8px; scroll-snap-type: x proximity; }
+/* Fan: cards overlap just enough (--ov, set by fanHand()) to fit the row; the selected card lifts to the front. */
+.hand { display: flex; justify-content: center; padding: 22px 4px 8px; }
+.hand .card + .card { margin-left: calc(-1 * var(--ov, 0px)); }
 .card { flex: none; width: 96px; height: 140px; background: var(--panel2); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; text-align: left;
   border-top: 5px solid var(--util); transition: transform .12s; scroll-snap-align: center; position: relative; }
 .card.attack { border-color: var(--atk); }
@@ -89,7 +91,7 @@ h2 { margin: 0 0 4px; }
 .rival, .player { position: relative; }
 .mute { background: none; font-size: 18px; padding: 2px 6px; }
 
-#app.enter > * { animation: fadein .3s ease both; }
+#app.enter > *:not(.top):not(.subbar) { animation: fadein .3s ease both; } /* header stays put between screens */
 @keyframes fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 .bar i { width: var(--to); animation: barmove .45s ease-out both; transition: none; }
@@ -246,3 +248,7 @@ h2 { margin: 0 0 4px; }
 .newbest { color: var(--gold); font-weight: 800; }
 
 .hpv { font-style: normal; }
+
+.hand .card { width: 82px; height: 138px; }
+.hand .card .nm { font-size: 11px; }
+.hand .card .tx { font-size: 10px; }
