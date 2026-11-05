@@ -247,7 +247,7 @@ function recordRun(r, result, killedBy) {
 }
 
 function newRun() {
-  run = { screen: 'map', hp: 70, maxHp: 70, gold: 50, deck: [...STARTER], floor: 0, path: [], sponsors: [], stats: { fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0 }, map: genMap(), help: false, pileView: null, sponsorView: false, mapView: false };
+  run = { screen: 'map', hp: 60, maxHp: 60, gold: 50, deck: [...STARTER], floor: 0, path: [], sponsors: [], stats: { fights: 0, elites: 0, cards: 0, dmgDealt: 0, dmgTaken: 0 }, map: genMap(), help: false, pileView: null, sponsorView: false, mapView: false };
   render();
 }
 
@@ -489,7 +489,7 @@ function winBattle() {
   run.hp = Math.min(run.maxHp, run.hp + (hasSp('fuel') ? 4 : 0));
   run.lastHeal = run.hp - hp0;
   run.rewards = shuffle([...REWARD_POOL]).slice(0, 3);
-  run.offer = elite ? shuffle(Object.keys(SPONSORS).filter(id => !hasSp(id))).slice(0, 3) : [];
+  run.offer = elite ? shuffle(Object.keys(SPONSORS).filter(id => !hasSp(id))).slice(0, 1) : []; // one sponsor, no choice
   run.screen = run.offer.length ? 'sponsor' : 'reward';
   render();
 }
@@ -515,7 +515,7 @@ const sponsorStrip = () => run.sponsors && run.sponsors.length
   ? `<button class="spons" data-act="sponsors" aria-label="View sponsors">${run.sponsors.map(id => SPONSORS[id].icon).join(' ')}</button>` : '';
 
 function vSponsor() {
-  return `${topBar()}<div class="center"><h2>🏷️ New Sponsor!</h2><div class="muted">Beating a Duel earns a sponsorship deal. Pick one.</div>
+  return `${topBar()}<div class="center"><h2>🏷️ New Sponsor!</h2><div class="muted">Beating a Duel earns you a sponsorship deal. Tap to sign it.</div>
     <div class="stack">${run.offer.map(id => { const s = SPONSORS[id]; return `<button class="spcard" data-act="sp:${id}"><span class="spic">${s.icon}</span><span><b>${s.name}</b><br><small>${s.text}</small></span></button>`; }).join('')}</div></div>`;
 }
 
